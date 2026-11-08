@@ -1,0 +1,6 @@
+.env
+.vscode/
+bin/
+dist/
+local.settings.json
+*.pdf
