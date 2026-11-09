@@ -19,23 +19,9 @@ urlFragment: functions-flex-byoc-go-html-to-pdf
 
 # Generate PDFs with Go and Chromium on Azure Functions Flex Consumption
 
-This sample builds an Azure Functions Go worker image that uses
+This sample builds an Azure Functions Flex Consumption Go worker image that uses
 [chromedp](https://github.com/chromedp/chromedp) and OS-installed Chromium to
 generate PDF documents.
-
-Use the sample to:
-
-- verify the original Go worker with `GET` and `POST /api/hello`;
-- render a built-in invoice with `GET /api/html-to-pdf`;
-- render bounded raw HTML with `POST /api/html-to-pdf`.
-
-> [!IMPORTANT]
-> Azure Functions Go worker-image support and the Go worker SDK used by this
-> sample are previews. Cloud deployment currently requires a subscription and
-> region enabled for the preview. The public Azure CLI does not create this
-> internal Stage configuration directly, so the validated deployment guide uses
-> Azure Resource Manager calls. Do not present this path as generally available
-> until the preview is exposed through supported public tooling.
 
 ## Architecture
 
