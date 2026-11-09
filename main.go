@@ -1,31 +1,44 @@
 package main
 
 import (
+	"net/http"
 	"os"
+	"time"
 
-	"github.com/MadhuraBharadwaj-MSFT/flex-byoc-go-html-to-pdf/internal/httpapi"
-	"github.com/MadhuraBharadwaj-MSFT/flex-byoc-go-html-to-pdf/internal/pdf"
 	"github.com/azure/azure-functions-golang-worker/sdk"
 	"github.com/azure/azure-functions-golang-worker/worker"
 )
 
-func main() {
-	renderer := pdf.NewChromiumRenderer(pdf.Options{
-		ExecutablePath: os.Getenv("CHROMIUM_PATH"),
-		MaxConcurrent:  1,
-		MaxOutputBytes: 20 << 20,
-		AllowNoSandbox: os.Getenv("CHROMIUM_NO_SANDBOX") == "1",
-	})
-	handler := httpapi.NewHandler(renderer, httpapi.Config{})
+const (
+	defaultChromiumPath = "/usr/bin/chromium-headless-shell"
+	renderTimeout       = 20 * time.Second
+	maxPDFBytes         = 8 << 20
+)
 
+func main() {
 	app := sdk.FunctionApp()
-	app.HTTP(
-		"HtmlToPdf",
-		handler.ServeHTTP,
+	app.HTTP("Hello", hello,
+		sdk.WithRoute("hello"),
+		sdk.WithMethods("GET", "POST"),
+		sdk.WithAuth("anonymous"),
+	)
+
+	chromiumPath := os.Getenv("CHROMIUM_PATH")
+	if chromiumPath == "" {
+		chromiumPath = defaultChromiumPath
+	}
+	renderer := newChromiumRenderer(chromiumPath, renderTimeout, maxPDFBytes)
+	app.HTTP("HtmlToPdf", htmlToPDFHandler(renderer),
 		sdk.WithRoute("html-to-pdf"),
 		sdk.WithMethods("GET", "POST"),
 		sdk.WithAuth("anonymous"),
 	)
 
 	worker.Start(app)
+}
+
+func hello(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Hello from the BYOC Go worker."))
 }

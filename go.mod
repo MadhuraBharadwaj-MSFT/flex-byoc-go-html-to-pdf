@@ -6,12 +6,12 @@ require (
 	github.com/azure/azure-functions-golang-worker v0.7.0-preview
 	github.com/chromedp/cdproto v0.159.0
 	github.com/chromedp/chromedp v0.23.0
-	golang.org/x/net v0.50.0
 )
 
 require (
 	github.com/go-json-experiment/json v0.0.0-20260213210345-44df1a37e875 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect

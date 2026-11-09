@@ -1,8 +1,6 @@
-.git
-.gitignore
-.github
-.vscode
-local.settings.json
-*.pdf
-bin
-dist
+*
+!*.Dockerfile
+!go.mod
+!go.sum
+!*.go
+!host.json
