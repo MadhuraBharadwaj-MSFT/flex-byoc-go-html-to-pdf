@@ -28,7 +28,7 @@ generate PDF documents.
 ```mermaid
 flowchart LR
     C[HTTP client] --> F[Azure Functions front end]
-    F --> H[Microsoft-managed Functions Host and WorkerProxy]
+    F --> H[Microsoft-managed Functions Host]
     H -->|gRPC| W[Customer worker image]
     subgraph W[Worker image]
         A[Compiled Go app and worker]
