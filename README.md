@@ -28,8 +28,8 @@ generate PDF documents.
 ```mermaid
 flowchart LR
     C[HTTP client] --> F[Azure Functions front end]
-    F --> H[Microsoft-managed Functions Host]
-    H -->|gRPC| W[Customer worker image]
+    F --> H[Microsoft-managed Azure Functions platform]
+    H --> W[Customer worker image]
     subgraph W[Worker image]
         A[Compiled Go app and worker]
         P[chromedp]
@@ -39,8 +39,8 @@ flowchart LR
 ```
 
 The final image contains only the customer-owned Go worker and its OS
-dependencies. The Functions Host and WorkerProxy remain outside the image on
-Microsoft-managed infrastructure.
+dependencies. Azure Functions provides the managed hosting components outside
+the image.
 
 ## Features
 
@@ -151,8 +151,8 @@ docker build \
 ```
 
 The final image is a worker image, not a standalone web server. It does not
-expose an HTTP port. HTTP requests flow through the platform Functions Host and
-WorkerProxy.
+expose an HTTP port. HTTP requests flow through the managed Azure Functions
+platform.
 
 ## Deploy to Azure
 

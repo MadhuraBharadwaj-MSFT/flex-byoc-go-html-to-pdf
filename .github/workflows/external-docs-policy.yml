@@ -1,0 +1,30 @@
+name: External documentation policy
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check-external-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject restricted internal platform terms
+        shell: bash
+        run: |
+          compact='worker''proxy'
+          spaced='worker'' proxy'
+          if grep -RIni \
+            --include='*.md' \
+            --exclude-dir='.git' \
+            -e "$compact" \
+            -e "$spaced" \
+            .; then
+            echo '::error::External documentation contains a restricted internal platform term.'
+            exit 1
+          fi

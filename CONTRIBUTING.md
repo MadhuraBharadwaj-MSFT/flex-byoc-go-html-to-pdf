@@ -8,6 +8,8 @@ Thank you for your interest in improving this sample.
 1. Keep changes focused on the sample scenario.
 1. Do not commit credentials, connection strings, subscription or tenant IDs,
    customer data, internal resource names, or personal information.
+1. Do not include internal platform component names or implementation details
+   in external documentation.
 1. Run:
 
    ```shell
