@@ -245,13 +245,8 @@ The image starts the compiled worker directly:
   --functions-grpc-max-message-length <platform value>
 ```
 
-The platform supplies all four arguments. The image sets only:
-
-```text
-FUNCTIONS_GO_DISABLE_HTTP_PROXY=1
-```
-
-It does not require `AzureWebJobsScriptRoot`,
+The platform supplies all four arguments. The image uses the Go worker's
+default HTTP request path and does not require `AzureWebJobsScriptRoot`,
 `FUNCTIONS_APPLICATION_DIRECTORY`, `FUNCTIONS_WORKER_RUNTIME`, or
 `FUNCTIONS_WORKER_RUNTIME_VERSION`.
 
@@ -266,19 +261,18 @@ For each PDF request, the renderer:
 1. validates the PDF signature and size;
 1. cancels Chromium and removes the temporary profile.
 
-## Preview Content-Type compatibility
+## Content-Type handling
 
-In the earlier Stage validation, externally sent `Content-Type` was delivered
-in `RpcHttp.NullableHeaders`. The Go worker `v1.0.2` converter still copies
-only `RpcHttp.Headers` into `http.Request`.
+The sample uses the Go worker's default HTTP request path. Azure validation
+with Go `1.27.0` and worker `v1.0.2` preserved `Content-Type`: `text/html`
+POST requests returned PDFs, while `application/json` was rejected with HTTP
+415.
 
-The handler therefore accepts a missing POST media type for this worker path
-while continuing to reject any visible non-`text/html` media type. Clients
-should still send `Content-Type: text/html`.
-
-The Go `1.27.0` and worker `v1.0.2` update has been validated locally with the
-unit, vet, Linux AMD64 build, and real Chromium integration checks. It has not
-been redeployed to the Stage environment.
+The handler retains support for a truly missing POST media type in case the
+platform falls back to HTTP over gRPC. That path is affected by
+[Azure/azure-functions-golang-worker#87](https://github.com/Azure/azure-functions-golang-worker/issues/87),
+which can omit nullable request headers. Clients should always send
+`Content-Type: text/html`.
 
 ## Security
 
@@ -339,15 +333,15 @@ Verify that:
 
 - the image contains `/home/site/wwwroot/app`;
 - the entrypoint runs that binary directly;
-- `FUNCTIONS_GO_DISABLE_HTTP_PROXY=1` is present;
 - the platform supplies all four worker arguments;
 - the image contains no Functions Host or placeholder proxy.
 
 ### POST returns HTTP 415
 
-Send `Content-Type: text/html`. If the preview host omits the header from the
-Go `http.Request`, use the checked-in compatibility behavior rather than
-weakening other request bounds.
+Send `Content-Type: text/html`. The Azure-validated default HTTP request path
+preserves the header. If behavior differs, inspect the active worker transport
+and compare it with
+[Azure/azure-functions-golang-worker#87](https://github.com/Azure/azure-functions-golang-worker/issues/87).
 
 ## Clean up resources
 

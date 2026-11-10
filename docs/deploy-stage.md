@@ -606,7 +606,8 @@ and monitoring resources are all contained in this resource group.
 - Image-local `host.json` forwarding is not established for this preview.
 - The Go worker uses buffered HTTP over gRPC; HTTP streaming is not claimed.
 - Warm-placeholder specialization is not established.
-- The Go worker `v1.0.2` converter does not copy
-  `RpcHttp.NullableHeaders` into the Go request, so the sample retains the
-  documented missing-Content-Type compatibility behavior. This version was
-  validated locally but has not been redeployed to Stage.
+- The sample uses the Go worker's default HTTP request path, which preserved
+  `Content-Type` during Azure validation. A forced or fallback HTTP-over-gRPC
+  path remains affected by
+  [Azure/azure-functions-golang-worker#87](https://github.com/Azure/azure-functions-golang-worker/issues/87),
+  so the handler retains its missing-Content-Type compatibility behavior.

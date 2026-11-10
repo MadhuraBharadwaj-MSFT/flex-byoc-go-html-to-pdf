@@ -29,8 +29,7 @@ RUN groupadd --gid 10001 app \
     && mkdir -p /home/site/wwwroot /home/app/.cache /home/app/.config \
     && chown -R 10001:10001 /home/app /home/site/wwwroot
 
-ENV FUNCTIONS_GO_DISABLE_HTTP_PROXY=1 \
-    CHROMIUM_PATH=/usr/bin/chromium-headless-shell \
+ENV CHROMIUM_PATH=/usr/bin/chromium-headless-shell \
     HOME=/home/app \
     XDG_CACHE_HOME=/home/app/.cache \
     XDG_CONFIG_HOME=/home/app/.config
