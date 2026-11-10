@@ -78,7 +78,7 @@ func TestHTMLToPDFPostUsesRawHTML(t *testing.T) {
 	}
 }
 
-func TestHTMLToPDFPostAcceptsMissingContentTypeForPreviewWorker(t *testing.T) {
+func TestHTMLToPDFPostAcceptsMissingContentTypeForWorkerCompatibility(t *testing.T) {
 	renderer := &fakeRenderer{pdf: []byte("%PDF-1.7\nunit test\n%%EOF")}
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/html-to-pdf", strings.NewReader("<html><body>Worker compatibility</body></html>"))

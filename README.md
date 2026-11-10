@@ -13,7 +13,7 @@ products:
 - azure
 - azure-functions
 - azure-container-registry
-urlFragment: functions-flex-byoc-go-html-to-pdf
+urlFragment: flex-container-go-html-to-pdf
 ---
 -->
 
@@ -46,7 +46,7 @@ the image.
 
 - Linux AMD64 worker-only container image
 - Direct `/home/site/wwwroot/app` entrypoint
-- Go worker SDK `v0.7.0-preview`
+- Go worker SDK `v1.0.2`
 - OS-installed Chromium headless shell and fonts
 - Non-root UID/GID `10001:10001`
 - Chromium sandbox enabled
@@ -68,7 +68,7 @@ To build and test the sample locally, install:
 - [Git](https://git-scm.com/downloads)
 - [Docker Desktop](https://docs.docker.com/desktop/) with Linux containers and
   Linux AMD64 build support
-- Optional: [Go 1.26](https://go.dev/dl/) to run tests without Docker
+- Optional: [Go 1.27.0](https://go.dev/dl/) to run tests without Docker
 
 To deploy the preview to Azure, you also need:
 
@@ -83,13 +83,13 @@ To deploy the preview to Azure, you also need:
 ### Clone the repository
 
 ```shell
-git clone https://github.com/MadhuraBharadwaj-MSFT/flex-byoc-go-html-to-pdf.git
-cd flex-byoc-go-html-to-pdf
+git clone https://github.com/MadhuraBharadwaj-MSFT/flex-container-go-html-to-pdf.git
+cd flex-container-go-html-to-pdf
 ```
 
 ### Run the source tests
 
-With Go 1.26 installed:
+With Go 1.27.0 installed:
 
 ```shell
 go test -count=1 ./...
@@ -102,7 +102,7 @@ Or run the checks in the Go builder image:
 docker run --rm --platform linux/amd64 \
   --mount "type=bind,source=$PWD,target=/src" \
   --workdir /src \
-  golang:1.26-bookworm \
+  golang:1.27.0-bookworm \
   sh -c 'go test -count=1 ./... && go vet ./...'
 ```
 
@@ -114,7 +114,7 @@ Build the integration target:
 docker build \
   --platform linux/amd64 \
   --target integration \
-  --tag flex-byoc-go-html-to-pdf:integration \
+  --tag flex-container-go-html-to-pdf:integration \
   .
 ```
 
@@ -129,7 +129,7 @@ docker run --rm \
   --env PDF_OUTPUT_PATH=/evidence/integration.pdf \
   --mount "type=bind,source=$PWD,target=/evidence" \
   --entrypoint /bin/sh \
-  flex-byoc-go-html-to-pdf:integration \
+  flex-container-go-html-to-pdf:integration \
   -c '/tmp/pdf.test -test.v -test.run TestChromiumRendererIntegration'
 ```
 
@@ -146,7 +146,7 @@ The test verifies that:
 docker build \
   --platform linux/amd64 \
   --target final \
-  --tag flex-byoc-go-html-to-pdf:latest \
+  --tag flex-container-go-html-to-pdf:latest \
   .
 ```
 
@@ -268,13 +268,17 @@ For each PDF request, the renderer:
 
 ## Preview Content-Type compatibility
 
-In the validated Stage flow, externally sent `Content-Type` was delivered in
-`RpcHttp.NullableHeaders`, while Go worker `v0.7.0-preview` copies only
-`RpcHttp.Headers` into `http.Request`.
+In the earlier Stage validation, externally sent `Content-Type` was delivered
+in `RpcHttp.NullableHeaders`. The Go worker `v1.0.2` converter still copies
+only `RpcHttp.Headers` into `http.Request`.
 
-The handler therefore accepts a missing POST media type for this preview worker
-path while continuing to reject any visible non-`text/html` media type. Clients
+The handler therefore accepts a missing POST media type for this worker path
+while continuing to reject any visible non-`text/html` media type. Clients
 should still send `Content-Type: text/html`.
+
+The Go `1.27.0` and worker `v1.0.2` update has been validated locally with the
+unit, vet, Linux AMD64 build, and real Chromium integration checks. It has not
+been redeployed to the Stage environment.
 
 ## Security
 

@@ -1,9 +1,9 @@
-module github.com/MadhuraBharadwaj-MSFT/flex-byoc-go-html-to-pdf
+module github.com/MadhuraBharadwaj-MSFT/flex-container-go-html-to-pdf
 
-go 1.26.0
+go 1.27.0
 
 require (
-	github.com/azure/azure-functions-golang-worker v0.7.0-preview
+	github.com/azure/azure-functions-golang-worker v1.0.2
 	github.com/chromedp/cdproto v0.159.0
 	github.com/chromedp/chromedp v0.23.0
 )
