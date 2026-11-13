@@ -38,13 +38,15 @@ WORKDIR /home/site/wwwroot
 
 FROM runtime AS integration
 
-COPY --from=build --chmod=0555 /out/pdf.test /tmp/pdf.test
+COPY --from=build /out/pdf.test /tmp/pdf.test
+RUN chmod 0555 /tmp/pdf.test
 USER 10001:10001
 ENTRYPOINT ["/tmp/pdf.test"]
 
 FROM runtime AS final
 
-COPY --from=build --chmod=0555 /out/app ./app
+COPY --from=build /out/app ./app
+RUN chmod 0555 ./app
 COPY host.json ./
 USER 10001:10001
 ENTRYPOINT ["/home/site/wwwroot/app"]
