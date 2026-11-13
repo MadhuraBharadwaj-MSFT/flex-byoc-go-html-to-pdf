@@ -69,7 +69,7 @@ while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
         --output "$HELLO_GET_PATH" \
         --write-out '%{http_code}' 2>/dev/null) || HELLO_GET_STATUS=
     if [ "$HELLO_GET_STATUS" = "200" ] &&
-        [ "$(cat "$HELLO_GET_PATH")" = "Hello from the BYOC Go worker." ]; then
+        [ "$(cat "$HELLO_GET_PATH")" = "Hello from the Go worker." ]; then
         break
     fi
 
@@ -85,7 +85,7 @@ while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
 done
 
 if [ "$HELLO_GET_STATUS" != "200" ] ||
-    [ "$(cat "$HELLO_GET_PATH")" != "Hello from the BYOC Go worker." ]; then
+    [ "$(cat "$HELLO_GET_PATH")" != "Hello from the Go worker." ]; then
     echo "The Go worker did not become healthy within six minutes." >&2
     exit 1
 fi
@@ -97,7 +97,7 @@ HELLO_POST_STATUS=$(curl --silent --show-error --max-time 120 \
     --output "$HELLO_POST_PATH" \
     --write-out '%{http_code}')
 if [ "$HELLO_POST_STATUS" != "200" ] ||
-    [ "$(cat "$HELLO_POST_PATH")" != "Hello from the BYOC Go worker." ]; then
+    [ "$(cat "$HELLO_POST_PATH")" != "Hello from the Go worker." ]; then
     echo "Hello POST did not return the exact expected response." >&2
     exit 1
 fi

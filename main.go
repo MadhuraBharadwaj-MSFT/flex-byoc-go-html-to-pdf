@@ -40,5 +40,5 @@ func main() {
 func hello(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("Hello from the BYOC Go worker."))
+	_, _ = w.Write([]byte("Hello from the Go worker."))
 }

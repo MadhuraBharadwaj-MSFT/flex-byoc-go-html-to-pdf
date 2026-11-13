@@ -2,10 +2,9 @@
 ---
 name: Go HTML-to-PDF on Azure Functions Flex Consumption containers
 description: >-
-  This sample deploys a Go 1.27 Azure Functions worker container that converts
-  bounded HTML to PDF with chromedp and operating-system Chromium. Azure
-  Developer CLI provisions the supporting resources and deploys an immutable
-  container image.
+  This sample contains an Azure Functions Flex Consumption container
+  application written in Go 1.27. It accepts bounded HTML and returns a PDF
+  rendered with chromedp and OS-installed Chromium.
 page_type: sample
 languages:
 - go
@@ -22,14 +21,13 @@ urlFragment: flex-container-go-html-to-pdf
 
 # Go HTML-to-PDF on Azure Functions Flex Consumption containers
 
-This sample accepts self-contained HTML and returns a PDF rendered with
-[chromedp](https://github.com/chromedp/chromedp) and the operating system's
-Chromium package.
+This sample accepts self-contained HTML in an HTTP POST request and returns a
+PDF rendered with chromedp and the operating system's Chromium package.
 
 The Azure Functions app runs from a Go 1.27 Flex Consumption container. Azure
-Developer CLI (`azd`) provisions the Azure resources, builds the Linux AMD64
-container with Azure Container Registry Tasks, deploys it by immutable digest,
-and verifies the live endpoints.
+Developer CLI (`azd`) provisions the Azure resources, builds the container
+with Azure Container Registry Tasks, deploys it by immutable digest, and
+verifies the live endpoints.
 
 ![Architecture diagram for Go HTML-to-PDF on Azure Functions Flex Consumption containers](./img/architecture.svg)
 
@@ -41,20 +39,18 @@ and verifies the live endpoints.
 ## Sample workflow
 
 1. Clone the repository.
-1. Run `azd up` to provision, build, deploy, and verify the Go container.
-1. Call `GET /api/html-to-pdf` for the built-in invoice or POST your own HTML.
+1. Run `azd up` to build and deploy the Go 1.27 container.
+1. POST your HTML to `/api/html-to-pdf`.
 1. Save or display the returned `application/pdf` response.
 
-The final image contains only the customer-owned Go worker and its operating
-system dependencies. Azure Functions provides the managed hosting layer.
+You may use `go test` to verify the function code locally. During the preview,
+deploy to Azure for end-to-end container validation.
 
 ## Prerequisites
 
-To deploy the sample:
-
 - [Git](https://git-scm.com/downloads)
-- [Python 3](https://www.python.org/downloads/) for deterministic image
-  packaging and cross-platform verification scripts
+- [Go 1.27.0](https://go.dev/dl/)
+- [Python 3](https://www.python.org/downloads/) for deployment scripts
 - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
 - [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
 - an Azure subscription enabled for the Registry-backed Flex Consumption
@@ -62,10 +58,7 @@ To deploy the sample:
 - permission to create resource groups, role assignments, storage, networking,
   monitoring, Azure Container Registry, FC1 plans, and Function Apps
 
-Optional local validation also uses:
-
-- [Go 1.27.0](https://go.dev/dl/)
-- [Docker Desktop](https://docs.docker.com/desktop/) with Linux AMD64 support
+Local Docker isn't required for the `azd` deployment.
 
 ## Initialize the project
 
@@ -76,60 +69,30 @@ cd flex-container-go-html-to-pdf
 
 ## How it works
 
-[`main.go`](./main.go) registers two anonymous HTTP functions:
+[`handler.go`](./handler.go) implements the customer endpoint:
 
 ```text
-GET|POST /api/hello
-GET|POST /api/html-to-pdf
+POST /api/html-to-pdf
+Content-Type: text/html; charset=utf-8
 ```
 
-`/api/hello` returns the exact baseline response:
+The function:
 
-```text
-Hello from the BYOC Go worker.
-```
+1. validates the media type, body, and 256 KiB input limit;
+1. launches OS-installed Chromium with chromedp as a non-root user;
+1. disables JavaScript and blocks external subresources;
+1. enforces one concurrent render, a 20-second timeout, 20 pages, and an
+   8 MiB output limit;
+1. validates cleanup of the browser process and temporary profile;
+1. returns `application/pdf` with no-store and nosniff headers.
 
-[`handler.go`](./handler.go) implements the HTML-to-PDF contract:
-
-- GET renders a built-in invoice.
-- POST accepts bounded raw HTML.
-- Visible non-`text/html` media types are rejected.
-- HTML input is limited to 256 KiB.
-- PDF responses use `application/pdf` and `Cache-Control: no-store`.
-
-[`renderer.go`](./renderer.go):
-
-1. allows one browser render at a time;
-1. creates a temporary Chromium profile;
-1. starts Chromium as the non-root app user;
-1. disables JavaScript and unnecessary browser services;
-1. blocks HTTP, HTTPS, file, FTP, and WebSocket subresources;
-1. loads HTML through a local `data:` URL;
-1. prints at most 20 pages;
-1. enforces a 20-second timeout and 8 MiB output limit;
-1. validates the PDF signature;
-1. cancels Chromium and removes the temporary profile.
+GET requests render a built-in invoice. [`main.go`](./main.go) also registers
+the `Hello` function used by deployment verification.
 
 Exact runtime and dependency pins live in the
-[`Dockerfile`](./Dockerfile) and [`go.mod`](./go.mod).
-
-## How the Azure environment is secured
-
-The Bicep deployment:
-
-- creates a dedicated user-assigned managed identity;
-- disables shared-key and public network access on runtime storage;
-- integrates the Function App with a dedicated Flex Consumption subnet;
-- reaches Blob Storage through a private endpoint and private DNS;
-- uses managed identity for runtime storage and Application Insights;
-- keeps ACR admin and anonymous pull disabled;
-- gives the Function App a repository-scoped read-only ACR token;
-- disables FTP, SCM basic authentication, and remote debugging;
-- enforces HTTPS and TLS 1.2 or newer.
-
-The Function App endpoint remains public and anonymous to keep the sample easy
-to test. Add platform authentication, authorization, rate limiting, tenant
-isolation, and abuse monitoring before production use.
+[`Dockerfile`](./Dockerfile),
+[`go.mod`](./go.mod), and
+[`go.sum`](./go.sum). Those files are the source of truth for version updates.
 
 ## How the container image is built
 
@@ -140,13 +103,11 @@ deploy the sample.
 
 During `azd up`:
 
-1. [`imagecontext.py`](./infra/scripts/imagecontext.py) stages only
-   `.dockerignore`, `Dockerfile`, `go.mod`, `go.sum`, `host.json`, and
-   root-level Go source files.
-1. The staged context receives a deterministic SHA-256 hash.
+1. [`imagecontext.py`](./infra/scripts/imagecontext.py) stages only files that
+   affect the image and calculates a deterministic SHA-256.
 1. The hash becomes the image tag: `azd-<context-hash>`.
-1. An existing tag is reused; otherwise `az acr build` runs an ACR Tasks quick
-   build.
+1. An existing tag is reused; otherwise `az acr build` runs the ACR Tasks
+   quick build.
 1. The workflow resolves the registry manifest digest.
 1. The Function App is pinned to
    `registry/repository:tag@sha256:digest`.
@@ -172,11 +133,11 @@ azd env set AZURE_FUNCTION_LOCATION eastus2euap
 
 `AZURE_LOCATION` is used for storage, ACR, Log Analytics, and Application
 Insights. `AZURE_FUNCTION_LOCATION` is used for the FC1 plan, Function App,
-virtual network, and private endpoint. The split is required because the
-preview Function location doesn't support every monitoring resource.
+virtual network, and private endpoint. The split is required because Log
+Analytics isn't available in `eastus2euap`.
 
-Provision the resources, build the container, deploy it, and verify all HTTP
-paths:
+Provision the resources, build the container, deploy it, and verify the Hello
+and PDF endpoints:
 
 ```shell
 azd up
@@ -184,16 +145,6 @@ azd up
 
 For unattended execution, use `azd up --no-prompt` after all four environment
 values are set.
-
-The postdeploy verification checks:
-
-- Hello GET and POST return the exact expected body;
-- PDF GET and `text/html` POST return complete PDFs;
-- `application/json` POST returns HTTP 415;
-- Azure inventories exactly `Hello` and `HtmlToPdf`;
-- the app uses the expected immutable Registry image, managed identity, and
-  VNet subnet;
-- incompatible deployment settings are absent.
 
 ## Test the deployed container
 
@@ -211,42 +162,7 @@ Bash:
 API_URL=$(azd env get-value API_URL)
 ```
 
-Test the baseline endpoint:
-
-```shell
-curl --fail --show-error "$API_URL/api/hello"
-```
-
-Expected response:
-
-```text
-Hello from the BYOC Go worker.
-```
-
-Get the built-in invoice:
-
-PowerShell:
-
-```powershell
-$format = "HTTP %{http_code}; Content-Type %{content_type}; " +
-  "Bytes %{size_download}`n"
-curl.exe --fail --show-error `
-  --output invoice.pdf `
-  --write-out $format `
-  "$apiUrl/api/html-to-pdf"
-```
-
-Bash:
-
-```bash
-FORMAT='HTTP %{http_code}; Content-Type %{content_type}; Bytes %{size_download}\n'
-curl --fail --show-error \
-  --output invoice.pdf \
-  --write-out "$FORMAT" \
-  "$API_URL/api/html-to-pdf"
-```
-
-POST the included [`examples/custom.html`](./examples/custom.html).
+POST the included [`sample.html`](./sample.html).
 
 PowerShell:
 
@@ -256,8 +172,8 @@ $format = "HTTP %{http_code}; Content-Type %{content_type}; " +
 curl.exe --fail --show-error `
   --request POST `
   --header "Content-Type: text/html; charset=utf-8" `
-  --data-binary "@examples/custom.html" `
-  --output custom.pdf `
+  --data-binary "@sample.html" `
+  --output document.pdf `
   --write-out $format `
   "$apiUrl/api/html-to-pdf"
 ```
@@ -268,97 +184,66 @@ Bash:
 FORMAT='HTTP %{http_code}; Content-Type %{content_type}; Bytes %{size_download}\n'
 curl --fail --show-error \
   --request POST \
-  --header "Content-Type: text/html; charset=utf-8" \
-  --data-binary @examples/custom.html \
-  --output custom.pdf \
+  --header 'Content-Type: text/html; charset=utf-8' \
+  --data-binary @sample.html \
+  --output document.pdf \
   --write-out "$FORMAT" \
   "$API_URL/api/html-to-pdf"
 ```
 
-Both PDFs must be non-empty and contain valid PDF boundaries:
+Expected output resembles:
+
+```text
+HTTP 200; Content-Type application/pdf; Bytes 20000
+```
+
+The byte count varies but must be greater than zero. Verify the PDF boundaries:
 
 ```shell
 python -c "from pathlib import Path
-for name in ('invoice.pdf', 'custom.pdf'):
-    data = Path(name).read_bytes()
-    assert data.startswith(b'%PDF-')
-    assert data.rstrip().endswith(b'%%EOF')
-print('Valid PDFs: invoice.pdf, custom.pdf')"
+data = Path('document.pdf').read_bytes()
+assert data.startswith(b'%PDF-')
+assert data.rstrip().endswith(b'%%EOF')
+print(f'Valid PDF: {len(data)} bytes')"
 ```
 
-Verify that a visible non-HTML media type is rejected:
-
-```shell
-curl --silent --show-error \
-  --request POST \
-  --header "Content-Type: application/json" \
-  --data-binary '{}' \
-  --output invalid-response.txt \
-  --write-out "HTTP %{http_code}\n" \
-  "$API_URL/api/html-to-pdf"
-```
-
-Expected status:
+Expected output:
 
 ```text
-HTTP 415
+Valid PDF: <non-zero byte count> bytes
 ```
 
-## Run focused checks locally
+Open the generated PDF.
 
-With Go 1.27.0 installed:
+Windows:
 
-```shell
-go test -count=1 ./...
-go vet ./...
+```powershell
+Start-Process .\document.pdf
 ```
 
-Or use the pinned builder family:
+macOS:
 
-```shell
-docker run --rm --platform linux/amd64 \
-  --mount "type=bind,source=$PWD,target=/src" \
-  --workdir /src \
-  golang:1.27.0-bookworm \
-  sh -c 'go test -count=1 ./... && go vet ./...'
+```bash
+open document.pdf
 ```
 
-Build and run the real Chromium integration test:
+Linux:
 
-```shell
-docker build \
-  --platform linux/amd64 \
-  --target integration \
-  --tag flex-container-go-html-to-pdf:integration \
-  .
-
-mkdir -p evidence
-docker run --rm \
-  --security-opt seccomp=unconfined \
-  --env RUN_CHROMIUM_INTEGRATION=1 \
-  --env PDF_OUTPUT_PATH=/evidence/integration.pdf \
-  --mount "type=bind,source=$PWD/evidence,target=/evidence" \
-  flex-container-go-html-to-pdf:integration
+```bash
+xdg-open document.pdf
 ```
 
-Docker Desktop's default seccomp profile can block Chromium namespace creation.
-The local test relaxes Docker's seccomp profile only; Chromium's own sandbox
-remains enabled. Azure runs the normal image without this test-only option.
+The displayed PDF should contain:
 
-Build the deployable worker-only image:
-
-```shell
-docker build \
-  --platform linux/amd64 \
-  --target final \
-  --tag flex-container-go-html-to-pdf:latest \
-  .
-```
-
-The worker-only image requires the Azure Functions host and isn't intended to
-be called directly with local `curl`.
+- **Azure Functions HTML-to-PDF**
+- **Rendered with chromedp and system Chromium**
+- **This document is self-contained and doesn't load external resources.**
 
 ## Redeploy container changes
+
+This section isn't needed for the initial deployment. Use it later if you
+change the Go source, Go dependencies, or Dockerfile and want to deploy an
+updated container.
 
 Rerun `azd up`, or use the image-only workflow after the environment is
 provisioned:
@@ -375,20 +260,29 @@ Bash:
 sh ./infra/scripts/deployimage.sh --verify
 ```
 
-Unchanged image inputs reuse the existing digest. The image deployment
-generates a repository-scoped ACR password with a 30-day expiration. Rerun the
-deployment before that credential expires so future cold starts can continue
-to pull the image.
+Unchanged image inputs reuse the existing digest.
 
-## Content-Type compatibility
+## Security
 
-The sample uses the Go worker's default HTTP request path, which preserves
-`Content-Type` in the validated Azure configuration.
+Rendering untrusted HTML invokes a complex browser parser. Before production
+use, add authentication, authorization, rate limiting, tenant isolation, abuse
+monitoring, and workload-specific HTML sanitization.
 
-The handler retains support for a truly missing POST media type in case the
-platform falls back to HTTP over gRPC. That fallback is affected by
-[Azure/azure-functions-golang-worker#87](https://github.com/Azure/azure-functions-golang-worker/issues/87).
-Clients should always send `Content-Type: text/html`.
+This sample:
+
+- uses anonymous HTTP triggers only to simplify the sample;
+- keeps ACR admin and anonymous pull disabled;
+- grants the Function App a repository-scoped read-only pull credential;
+- passes registry secrets only as secure deployment parameters;
+- doesn't write secrets to source or `azd` environment outputs;
+- uses managed identity for runtime storage and Application Insights;
+- disables shared-key and public network access on runtime storage;
+- reaches runtime storage through a private endpoint;
+- runs the application and Chromium as UID/GID `10001`;
+- keeps Chromium's sandbox enabled;
+- disables JavaScript and external subresources;
+- doesn't accept arbitrary URLs for server-side fetching;
+- bounds input, output, concurrency, pages, and execution time.
 
 ## Preview limitations
 
@@ -396,13 +290,12 @@ Clients should always send `Content-Type: text/html`.
 - Region and subscription enablement are required.
 - ACR Basic uses a public service endpoint; admin and anonymous access remain
   disabled.
-- Runtime storage is private, but the HTTP Function endpoint is public.
-- The HTTP functions are anonymous.
+- Runtime storage is private, but the HTTP Function endpoints are public.
+- The HTTP endpoints are anonymous.
 - The image is Linux AMD64 only.
 - The short-lived ACR pull password must be refreshed by rerunning deployment.
-
-For the advanced manual deployment shape, see
-[`docs/deploy-stage.md`](./docs/deploy-stage.md).
+- Forced or fallback HTTP-over-gRPC request handling remains affected by
+  [Azure/azure-functions-golang-worker#87](https://github.com/Azure/azure-functions-golang-worker/issues/87).
 
 ## Costs
 
@@ -433,9 +326,9 @@ This command doesn't delete the local repository.
 ## Resources
 
 - [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/)
-- [Azure Functions Go developer guide](https://learn.microsoft.com/azure/azure-functions/functions-reference-go)
+- [Run Azure Functions locally](https://learn.microsoft.com/azure/azure-functions/functions-run-local)
 - [Azure Functions Flex Consumption](https://learn.microsoft.com/azure/azure-functions/flex-consumption-plan)
-- [Azure Functions networking options](https://learn.microsoft.com/azure/azure-functions/functions-networking-options)
+- [Azure Functions Go developer guide](https://learn.microsoft.com/azure/azure-functions/functions-reference-go)
 - [Azure Container Registry Tasks](https://learn.microsoft.com/azure/container-registry/container-registry-tasks-overview)
 - [chromedp](https://github.com/chromedp/chromedp)
 

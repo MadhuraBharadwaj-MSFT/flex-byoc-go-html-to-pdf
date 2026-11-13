@@ -114,7 +114,7 @@ try {
         }
         if ($helloGet.ExitCode -eq 0 -and
             $helloGet.Status -eq 200 -and
-            $helloBody -eq 'Hello from the BYOC Go worker.') {
+            $helloBody -eq 'Hello from the Go worker.') {
             break
         }
 
@@ -129,7 +129,7 @@ try {
     }
 
     if ($helloGet.Status -ne 200 -or
-        $helloBody -ne 'Hello from the BYOC Go worker.') {
+        $helloBody -ne 'Hello from the Go worker.') {
         throw 'The Go worker did not become healthy within six minutes.'
     }
 
@@ -140,7 +140,7 @@ try {
     $helloPostBody = Get-Content -LiteralPath $helloPost.BodyPath -Raw
     if ($helloPost.ExitCode -ne 0 -or
         $helloPost.Status -ne 200 -or
-        $helloPostBody -ne 'Hello from the BYOC Go worker.') {
+        $helloPostBody -ne 'Hello from the Go worker.') {
         throw 'Hello POST did not return the exact expected response.'
     }
 

@@ -34,7 +34,7 @@ func TestHello(t *testing.T) {
 			if response.Code != http.StatusOK {
 				t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
 			}
-			if got := response.Body.String(); got != "Hello from the BYOC Go worker." {
+			if got := response.Body.String(); got != "Hello from the Go worker." {
 				t.Fatalf("body = %q, want exact greeting", got)
 			}
 		})

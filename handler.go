@@ -182,6 +182,6 @@ const builtInInvoiceHTML = `<!doctype html>
     </tbody>
   </table>
 
-  <footer>Thank you for validating Azure Functions BYOC.</footer>
+  <footer>Thank you for validating Azure Functions containers.</footer>
 </body>
 </html>`

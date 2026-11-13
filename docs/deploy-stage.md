@@ -360,7 +360,10 @@ $settings = Invoke-RestMethod `
   -Uri "${settingsBase}/list?api-version=2026-08-01" `
   -Headers $headers
 
-foreach ($name in 'BYOC_REGISTRY_USERNAME', 'BYOC_REGISTRY_PASSWORD') {
+foreach ($name in @(
+        'FLEX_CONTAINER_REGISTRY_USERNAME',
+        'FLEX_CONTAINER_REGISTRY_PASSWORD'
+    )) {
     if ($settings.properties.PSObject.Properties.Name -contains $name) {
         throw "Setting $name already exists; refusing to overwrite it."
     }
@@ -390,11 +393,11 @@ Update the settings and convert the preserved `functionAppConfig`:
 ```powershell
 try {
     $settings.properties | Add-Member `
-      -NotePropertyName BYOC_REGISTRY_USERNAME `
+      -NotePropertyName FLEX_CONTAINER_REGISTRY_USERNAME `
       -NotePropertyValue $credentials.username
 
     $settings.properties | Add-Member `
-      -NotePropertyName BYOC_REGISTRY_PASSWORD `
+      -NotePropertyName FLEX_CONTAINER_REGISTRY_PASSWORD `
       -NotePropertyValue $password.value
 
     $settingsBody = @{
@@ -415,8 +418,8 @@ try {
         value = $pinnedImage
         authentication = @{
             type = 'Basic'
-            usernameSettingName = 'BYOC_REGISTRY_USERNAME'
-            passwordSettingName = 'BYOC_REGISTRY_PASSWORD'
+            usernameSettingName = 'FLEX_CONTAINER_REGISTRY_USERNAME'
+            passwordSettingName = 'FLEX_CONTAINER_REGISTRY_PASSWORD'
         }
     }
 
@@ -526,7 +529,7 @@ Verify the original Go function:
 $helloUri = "$endpoint/hello"
 
 foreach ($method in 'GET', 'POST') {
-    $helloFile = Join-Path $env:TEMP "go-byoc-hello-$method.txt"
+    $helloFile = Join-Path $env:TEMP "go-container-hello-$method.txt"
 
     try {
         Invoke-BoundedCurl `
@@ -535,7 +538,7 @@ foreach ($method in 'GET', 'POST') {
           -Arguments @('--request', $method)
 
         $content = [IO.File]::ReadAllText($helloFile)
-        if ($content -cne 'Hello from the BYOC Go worker.') {
+        if ($content -cne 'Hello from the Go worker.') {
             throw "$method /api/hello returned an unexpected body."
         }
     }
